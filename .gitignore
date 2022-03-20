@@ -9,4 +9,5 @@
 /vendor/
 public/input/*
 public/output/*
+public/.DS_Store
 ###< symfony/framework-bundle ###

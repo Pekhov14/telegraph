@@ -12,6 +12,9 @@ use Symfony\Component\Console\Helper\ProgressBar;
 class TelegraphCommand extends Command
 {
     protected static $defaultName = 'bot:create-paragraph';
+    private string $spaces = '';
+    private $projectDir;
+
 
     public function __construct($projectDir)
     {
@@ -24,45 +27,108 @@ class TelegraphCommand extends Command
     {
         $this
             ->addArgument('input_file', InputArgument::REQUIRED, 'Путь к файлу')
-            ->addArgument('output_file', InputArgument::OPTIONAL, 'Путь для файла резуатата')
+            ->addArgument('output_file', InputArgument::REQUIRED, 'Путь для файла результата')
+            ->addArgument('spaces_count', InputArgument::OPTIONAL, 'Количество пробелов', 20)
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         # Read file
-        $inputFile = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
+        $inputFile  = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
+        $outputFile = $this->projectDir . '/public/output/' . $input->getArgument('output_file');
 
-//dd($inputFile);
-# Add line break after dot
 
-        # Add spaces after dot and line break
+        $this->setSpaces($input->getArgument('spaces_count'));
 
-        # Add output to file
+        if (file_exists($outputFile)) {
+            unlink($outputFile);
+        }
+
+        $lines = file($inputFile, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
+
+        $progressBar = new ProgressBar($output, count($lines));
+
+        $progressBar->start();
+
+        $this->splitByDot($lines, $outputFile, $progressBar);
+
+        $progressBar->finish();
 
         return Command::SUCCESS;
     }
 
-//$progressBar = new ProgressBar($output, 5);
-//
-//$progressBar->start();
-//
-//$i = 0;
-//while ($i++ < 5) {
-//sleep(1);
-//$progressBar->advance();
-//}
-//// Метод для чтения файла
-//sleep(1);
-//
-//$output->writeln([
-//    '',
-//    '',
-//    'Выполнено успешно',
-//]);
-//
-//$output->writeln('input_file: '.$input->getArgument('input_file'));
-//$output->writeln('output_file: '.$input->getArgument('output_file'));
-//
-//$progressBar->finish();
+    private function splitByDot($lines, $outputFile, $progressBar): void
+    {
+        foreach($lines as $key => $line) {
+            $paragraph = $line . "\n";
+
+            $length = mb_strlen($line);
+
+            if ($length < 120) {
+                file_put_contents(
+                    $outputFile,
+                    $paragraph,
+                    FILE_APPEND | LOCK_EX
+                );
+            } else if ($length > 400) {
+                $textArray = explode(".", $line);
+
+                $textParagraph = '';
+                $tmpText = '';
+
+                foreach ($textArray as $textIndex => $textValue) {
+                    if ($textIndex === 0) {
+                        if (mb_strlen($textValue) > 400) {
+                            $textParagraph .= $textValue . ".\n";
+                        }
+
+                        $tmpText = $textValue . '.';
+                        continue;
+                    }
+
+                    if (mb_strlen($tmpText . $textValue) > 400) {
+                        $textParagraph .= $tmpText . "\n";
+
+                        $tmpText = $textValue  . '.';
+                        continue;
+                    }
+
+
+                    $tmpText .= $textValue . '.';
+
+                    if(!next($textArray)) {
+                        $textParagraph .= $tmpText . '.';
+                    }
+                }
+
+                $paragraph = $this->spaces . $textParagraph;
+
+                file_put_contents(
+                    $outputFile,
+                    $paragraph,
+                    FILE_APPEND | LOCK_EX
+                );
+            } else {
+                $paragraph = $this->spaces . $paragraph;
+
+                file_put_contents(
+                    $outputFile,
+                    $paragraph,
+                    FILE_APPEND | LOCK_EX
+                );
+            }
+
+            $progressBar->advance();
+            usleep(1000);
+        }
+
+    }
+
+    private function setSpaces($spaces_count): void
+    {
+        for ($i = 0; $i < $spaces_count; $i++) {
+            $this->spaces .= ' ';
+        }
+    }
 }
