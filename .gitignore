@@ -7,4 +7,6 @@
 /public/bundles/
 /var/
 /vendor/
+public/input/*
+public/output/*
 ###< symfony/framework-bundle ###
