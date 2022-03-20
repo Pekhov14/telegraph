@@ -26,9 +26,9 @@ class TelegraphCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('input_file', InputArgument::REQUIRED, 'Путь к файлу')
-            ->addArgument('output_file', InputArgument::REQUIRED, 'Путь для файла результата')
-            ->addArgument('spaces_count', InputArgument::OPTIONAL, 'Количество пробелов', 20)
+            ->addArgument('input_file', InputArgument::REQUIRED, 'File name with text')
+            ->addArgument('output_file', InputArgument::REQUIRED, 'Output file name')
+            ->addArgument('spaces_count', InputArgument::OPTIONAL, 'Quantity chars spaces', 20)
         ;
     }
 
