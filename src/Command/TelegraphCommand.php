@@ -102,7 +102,8 @@ class TelegraphCommand extends Command
                     }
                 }
 
-                $paragraph = $this->spaces . $textParagraph;
+//                $this->spaces .
+                $paragraph =  $textParagraph;
 
                 file_put_contents(
                     $outputFile,
