@@ -68,7 +68,7 @@ class TelegraphCommand extends Command
             if ($length < 120) {
                 file_put_contents(
                     $outputFile,
-                    $paragraph,
+                    $this->spaces . $paragraph,
                     FILE_APPEND | LOCK_EX
                 );
             } else if ($length > 400) {
