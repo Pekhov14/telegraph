@@ -59,7 +59,7 @@ class TelegraphCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function splitByDot($lines, $outputFile, $progressBar): void
+    private function splitByDot(array $lines, string $outputFile, ProgressBar $progressBar): void
     {
         foreach($lines as $key => $line) {
             $paragraph = $line . "\n";
@@ -101,7 +101,7 @@ class TelegraphCommand extends Command
                     }
                 }
 
-                $paragraph =  $textParagraph;
+                $paragraph = $textParagraph;
 
                 $this->writeContent($outputFile, $paragraph);
 
@@ -118,7 +118,7 @@ class TelegraphCommand extends Command
 
     }
 
-    private function setSpaces($spaces_count): void
+    private function setSpaces(int $spaces_count): void
     {
         for ($i = 0; $i < $spaces_count; $i++) {
             $this->spaces .= ' ';
