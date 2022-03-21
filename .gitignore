@@ -10,4 +10,5 @@
 public/input/*
 public/output/*
 public/.DS_Store
+.DS_Store
 ###< symfony/framework-bundle ###

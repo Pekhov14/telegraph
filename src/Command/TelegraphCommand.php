@@ -34,7 +34,6 @@ class TelegraphCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        # Read file
         $inputFile  = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
         $outputFile = $this->projectDir . '/public/output/' . $input->getArgument('output_file');
 
@@ -65,19 +64,17 @@ class TelegraphCommand extends Command
 
             $length = mb_strlen($line);
 
-            if ($length < 120) {
-                file_put_contents(
-                    $outputFile,
-                    $this->spaces . $paragraph,
-                    FILE_APPEND | LOCK_EX
-                );
-            } else if ($length > 400) {
+            if ($length > 400) {
                 $textArray = explode(".", $line);
 
                 $textParagraph = '';
                 $tmpText = '';
 
                 foreach ($textArray as $textIndex => $textValue) {
+                    if (empty($textValue)) {
+                        continue;
+                    }
+
                     if ($textIndex === 0) {
                         if (mb_strlen($textValue) > 400) {
                             $textParagraph .= $this->spaces . $textValue . ".\n";
@@ -102,7 +99,6 @@ class TelegraphCommand extends Command
                     }
                 }
 
-//                $this->spaces .
                 $paragraph =  $textParagraph;
 
                 file_put_contents(
@@ -110,15 +106,17 @@ class TelegraphCommand extends Command
                     $paragraph,
                     FILE_APPEND | LOCK_EX
                 );
-            } else {
-                $paragraph = $this->spaces . $paragraph;
 
-                file_put_contents(
-                    $outputFile,
-                    $paragraph,
-                    FILE_APPEND | LOCK_EX
-                );
+                continue;
             }
+
+            $paragraph = $this->spaces . $paragraph;
+
+            file_put_contents(
+                $outputFile,
+                $paragraph,
+                FILE_APPEND | LOCK_EX
+            );
 
             $progressBar->advance();
             usleep(1000);
