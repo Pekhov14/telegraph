@@ -80,7 +80,7 @@ class TelegraphCommand extends Command
                 foreach ($textArray as $textIndex => $textValue) {
                     if ($textIndex === 0) {
                         if (mb_strlen($textValue) > 400) {
-                            $textParagraph .= $textValue . ".\n";
+                            $textParagraph .= $textValue . ".\n" . $this->spaces;
                         }
 
                         $tmpText = $textValue . '.';
@@ -88,7 +88,7 @@ class TelegraphCommand extends Command
                     }
 
                     if (mb_strlen($tmpText . $textValue) > 400) {
-                        $textParagraph .= $tmpText . "\n";
+                        $textParagraph .= $tmpText . "\n" . $this->spaces;
 
                         $tmpText = $textValue  . '.';
                         continue;
