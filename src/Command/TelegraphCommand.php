@@ -13,8 +13,11 @@ class TelegraphCommand extends Command
 {
     protected static $defaultName = 'bot:create-paragraph';
     private string $spaces = '';
+    private int $pageNumber = 1;
     private $projectDir;
 
+    private const SIZE_FOR_PAGE = 42;
+    private const MAX_LENGTH_PARAGRAPH = 400;
 
     public function __construct($projectDir)
     {
@@ -40,9 +43,8 @@ class TelegraphCommand extends Command
 
         $this->setSpaces($input->getArgument('spaces_count'));
 
-        if (file_exists($outputFile)) {
-            unlink($outputFile);
-        }
+        # Clear all .txt files
+        array_map('unlink', glob( $this->projectDir . '/public/output/' . '*.txt'));
 
         $lines = file($inputFile, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
 
@@ -64,7 +66,7 @@ class TelegraphCommand extends Command
 
             $length = mb_strlen($line);
 
-            if ($length > 400) {
+            if ($length > self::MAX_LENGTH_PARAGRAPH) {
                 $textArray = explode(".", $line);
 
                 $textParagraph = '';
@@ -76,7 +78,7 @@ class TelegraphCommand extends Command
                     }
 
                     if ($textIndex === 0) {
-                        if (mb_strlen($textValue) > 400) {
+                        if (mb_strlen($textValue) > self::MAX_LENGTH_PARAGRAPH) {
                             $textParagraph .= $this->spaces . $textValue . ".\n";
                         }
 
@@ -84,7 +86,7 @@ class TelegraphCommand extends Command
                         continue;
                     }
 
-                    if (mb_strlen($tmpText . $textValue) > 400) {
+                    if (mb_strlen($tmpText . $textValue) > self::MAX_LENGTH_PARAGRAPH) {
                         $textParagraph .= $this->spaces . $tmpText . "\n";
 
                         $tmpText = $textValue  . '.';
@@ -101,22 +103,14 @@ class TelegraphCommand extends Command
 
                 $paragraph =  $textParagraph;
 
-                file_put_contents(
-                    $outputFile,
-                    $paragraph,
-                    FILE_APPEND | LOCK_EX
-                );
+                $this->writeContent($outputFile, $paragraph);
 
                 continue;
             }
 
             $paragraph = $this->spaces . $paragraph;
 
-            file_put_contents(
-                $outputFile,
-                $paragraph,
-                FILE_APPEND | LOCK_EX
-            );
+            $this->writeContent($outputFile, $paragraph);
 
             $progressBar->advance();
             usleep(1000);
@@ -129,5 +123,23 @@ class TelegraphCommand extends Command
         for ($i = 0; $i < $spaces_count; $i++) {
             $this->spaces .= ' ';
         }
+    }
+
+    private function writeContent(string $outputFile, string $text): void
+    {
+        $filename = $outputFile . $this->pageNumber . '.txt';
+
+        clearstatcache();
+
+        // kilobytes with two digits
+        if (file_exists($filename) && (round(filesize($filename) / 1024, 2)) > self::SIZE_FOR_PAGE) {
+            $this->pageNumber++;
+        }
+
+        file_put_contents(
+            $outputFile . $this->pageNumber . '.txt',
+            $text,
+            FILE_APPEND | LOCK_EX
+        );
     }
 }
