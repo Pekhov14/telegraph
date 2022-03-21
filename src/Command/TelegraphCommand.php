@@ -88,7 +88,7 @@ class TelegraphCommand extends Command
                     }
 
                     if (mb_strlen($tmpText . $textValue) > 400) {
-                        $textParagraph .= $tmpText . "\n";
+                        $textParagraph .= $tmpText . "\n" . $this->spaces;
 
                         $tmpText = $textValue  . '.';
                         continue;
