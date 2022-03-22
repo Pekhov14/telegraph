@@ -16,7 +16,7 @@ class TelegraphCommand extends Command
     private int $pageNumber = 1;
     private $projectDir;
 
-    private const SIZE_FOR_PAGE = 42;
+    private const SIZE_FOR_PAGE = 35;
     private const MAX_LENGTH_PARAGRAPH = 400;
 
     public function __construct($projectDir)
