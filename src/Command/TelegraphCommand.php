@@ -2,6 +2,8 @@
 
 namespace App\Command;
 
+use App\Service\FileManager;
+use App\Service\ParagraphGenerator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,10 +15,9 @@ class TelegraphCommand extends Command
 {
     protected static $defaultName = 'bot:create-paragraph';
     private string $spaces = '';
+    private string $projectDir;
     private int $pageNumber = 1;
-    private $projectDir;
 
-    private const SIZE_FOR_PAGE = 35;
     private const MAX_LENGTH_PARAGRAPH = 400;
 
     public function __construct($projectDir)
@@ -37,29 +38,32 @@ class TelegraphCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        # Directory preparation
         $inputFile  = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
         $outputFile = $this->projectDir . '/public/output/' . $input->getArgument('output_file');
 
+        $paragraphGenerator = new ParagraphGenerator();
+        $fileManager         = new FileManager();
 
-        $this->setSpaces($input->getArgument('spaces_count'));
+        $this->spaces = $paragraphGenerator->setSizeSpaces($input->getArgument('spaces_count'));
 
-        # Clear all .txt files
-        array_map('unlink', glob( $this->projectDir . '/public/output/' . '*.txt'));
+        $fileManager->clearFolder($this->projectDir . '/public/output', '/*');
 
+        # Get all lines from file
         $lines = file($inputFile, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
 
         $progressBar = new ProgressBar($output, count($lines));
-
         $progressBar->start();
 
-        $this->splitByDot($lines, $outputFile, $progressBar);
+        $this->splitByDot($lines, $outputFile, $progressBar, $fileManager);
 
         $progressBar->finish();
 
         return Command::SUCCESS;
     }
 
-    private function splitByDot(array $lines, string $outputFile, ProgressBar $progressBar): void
+    # TODO: In the future, move to Paragraph Generator
+    private function splitByDot(array $lines, string $outputFile, ProgressBar $progressBar, FileManager $fileManager): void
     {
         foreach($lines as $key => $line) {
             $paragraph = $line . "\n";
@@ -102,44 +106,18 @@ class TelegraphCommand extends Command
                 }
 
                 $paragraph = $textParagraph;
-
-                $this->writeContent($outputFile, $paragraph);
+                $fileManager->writeContent($outputFile, $paragraph,$this->pageNumber);
 
                 continue;
             }
 
             $paragraph = $this->spaces . $paragraph;
 
-            $this->writeContent($outputFile, $paragraph);
+            $fileManager->writeContent($outputFile, $paragraph, $this->pageNumber);
 
             $progressBar->advance();
             usleep(1000);
         }
 
-    }
-
-    private function setSpaces(int $spaces_count): void
-    {
-        for ($i = 0; $i < $spaces_count; $i++) {
-            $this->spaces .= ' ';
-        }
-    }
-
-    private function writeContent(string $outputFile, string $text): void
-    {
-        $filename = $outputFile . $this->pageNumber . '.txt';
-
-        clearstatcache();
-
-        // kilobytes with two digits
-        if (file_exists($filename) && (round(filesize($filename) / 1024, 2)) > self::SIZE_FOR_PAGE) {
-            $this->pageNumber++;
-        }
-
-        file_put_contents(
-            $outputFile . $this->pageNumber . '.txt',
-            $text,
-            FILE_APPEND | LOCK_EX
-        );
     }
 }
