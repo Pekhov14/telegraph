@@ -20,9 +20,15 @@ class TelegraphCommand extends Command
 
     private const MAX_LENGTH_PARAGRAPH = 400;
 
-    public function __construct($projectDir)
+    private $fileManager;
+    private $paragraphGenerator;
+
+    public function __construct($projectDir, ParagraphGenerator $paragraphGenerator, FileManager $fileManager)
     {
         $this->projectDir = $projectDir;
+
+        $this->paragraphGenerator = $paragraphGenerator;
+        $this->fileManager         = $fileManager;
 
         parent::__construct();
     }
@@ -42,12 +48,9 @@ class TelegraphCommand extends Command
         $inputFile  = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
         $outputFile = $this->projectDir . '/public/output/' . $input->getArgument('output_file');
 
-        $paragraphGenerator = new ParagraphGenerator();
-        $fileManager         = new FileManager();
+        $this->spaces = $this->paragraphGenerator->setSizeSpaces($input->getArgument('spaces_count'));
 
-        $this->spaces = $paragraphGenerator->setSizeSpaces($input->getArgument('spaces_count'));
-
-        $fileManager->clearFolder($this->projectDir . '/public/output', '/*');
+        $this->fileManager->clearFolder($this->projectDir . '/public/output', '/*');
 
         # Get all lines from file
         $lines = file($inputFile, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
@@ -55,7 +58,7 @@ class TelegraphCommand extends Command
         $progressBar = new ProgressBar($output, count($lines));
         $progressBar->start();
 
-        $this->splitByDot($lines, $outputFile, $progressBar, $fileManager);
+        $this->splitByDot($lines, $outputFile, $progressBar, $this->fileManager);
 
         $progressBar->finish();
 
