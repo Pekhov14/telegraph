@@ -14,14 +14,12 @@ use Symfony\Component\Console\Helper\ProgressBar;
 class TelegraphCommand extends Command
 {
     protected static $defaultName = 'bot:create-paragraph';
-    private string $spaces = '';
     private string $projectDir;
     private int $pageNumber = 1;
 
-    private const MAX_LENGTH_PARAGRAPH = 400;
 
-    private $fileManager;
-    private $paragraphGenerator;
+    private FileManager $fileManager;
+    private ParagraphGenerator $paragraphGenerator;
 
     public function __construct($projectDir, ParagraphGenerator $paragraphGenerator, FileManager $fileManager)
     {
@@ -48,79 +46,30 @@ class TelegraphCommand extends Command
         $inputFile  = $this->projectDir . '/public/input/' . $input->getArgument('input_file');
         $outputFile = $this->projectDir . '/public/output/' . $input->getArgument('output_file');
 
-        $this->spaces = $this->paragraphGenerator->setSizeSpaces($input->getArgument('spaces_count'));
+        $spaces = $this->paragraphGenerator->setSizeSpaces($input->getArgument('spaces_count'));
 
         $this->fileManager->clearFolder($this->projectDir . '/public/output', '/*');
 
         # Get all lines from file
         $lines = file($inputFile, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
 
+        # Configure ProgressBar
         $progressBar = new ProgressBar($output, count($lines));
+        $progressBar->setBarCharacter('<fg=green>⚬</>');
+        $progressBar->setEmptyBarCharacter("<fg=red>⚬</>");
+        $progressBar->setProgressCharacter("<fg=green>➤</>");
         $progressBar->start();
 
-        $this->splitByDot($lines, $outputFile, $progressBar, $this->fileManager);
+        foreach($lines as $line) {
+            $paragraph = $this->paragraphGenerator->generateParagraph($line . "\n", $spaces);
 
-        $progressBar->finish();
-
-        return Command::SUCCESS;
-    }
-
-    # TODO: In the future, move to Paragraph Generator
-    private function splitByDot(array $lines, string $outputFile, ProgressBar $progressBar, FileManager $fileManager): void
-    {
-        foreach($lines as $key => $line) {
-            $paragraph = $line . "\n";
-
-            $length = mb_strlen($line);
-
-            if ($length > self::MAX_LENGTH_PARAGRAPH) {
-                $textArray = explode(".", $line);
-
-                $textParagraph = '';
-                $tmpText = '';
-
-                foreach ($textArray as $textIndex => $textValue) {
-                    if (empty($textValue)) {
-                        continue;
-                    }
-
-                    if ($textIndex === 0) {
-                        if (mb_strlen($textValue) > self::MAX_LENGTH_PARAGRAPH) {
-                            $textParagraph .= $this->spaces . $textValue . ".\n";
-                        }
-
-                        $tmpText = $textValue . '.';
-                        continue;
-                    }
-
-                    if (mb_strlen($tmpText . $textValue) > self::MAX_LENGTH_PARAGRAPH) {
-                        $textParagraph .= $this->spaces . $tmpText . "\n";
-
-                        $tmpText = $textValue  . '.';
-                        continue;
-                    }
-
-
-                    $tmpText .= $textValue . '.';
-
-                    if(!next($textArray)) {
-                        $textParagraph .= $tmpText . '.';
-                    }
-                }
-
-                $paragraph = $textParagraph;
-                $fileManager->writeContent($outputFile, $paragraph,$this->pageNumber);
-
-                continue;
-            }
-
-            $paragraph = $this->spaces . $paragraph;
-
-            $fileManager->writeContent($outputFile, $paragraph, $this->pageNumber);
+            $this->fileManager->writeContent($outputFile, $paragraph, $this->pageNumber);
 
             $progressBar->advance();
             usleep(1000);
         }
 
+        $progressBar->finish();
+        return Command::SUCCESS;
     }
 }
